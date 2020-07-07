@@ -161,7 +161,7 @@ can make Helpful very slow.")
 
 (defun helpful--heading (text)
   "Propertize TEXT as a heading."
-  (format "%s\n" (propertize text 'face 'helpful-heading)))
+  (format "* %s\n" (propertize text 'face 'helpful-heading)))
 
 (defun helpful--format-closure (sym form)
   "Given a closure, return an equivalent defun form."
@@ -1604,7 +1604,7 @@ syntax highlight it."
   "Return a syntax-highlighted version of HEAD, with a link
 to its source location."
   (let ((formatted-count
-         (format "%d reference%s"
+         (format "; %d reference%s"
                  ref-count (if (> ref-count 1) "s" ""))))
     (propertize
      (format
@@ -1927,7 +1927,7 @@ OBJ may be a symbol or a compiled function object."
 
     (s-word-wrap
      70
-     (format "%s is %s %s %s %s."
+     (format "#+TITLE: %s \n\nThis is %s %s %s %s."
              (if (symbolp sym)
                  (helpful--format-symbol sym)
                "This lambda")
@@ -2140,7 +2140,8 @@ state of the current symbol."
       (helpful--insert-section-break)
       (insert
        (helpful--heading "Signature")
-       (helpful--syntax-highlight (helpful--signature helpful--sym))))
+       (format "#+begin_src elisp\n%s\n#+end_src"
+               (helpful--signature helpful--sym))))
 
     (when (not helpful--callable-p)
       (helpful--insert-section-break)
@@ -2166,7 +2167,8 @@ state of the current symbol."
              (local-variable-p sym helpful--associated-buffer))
             (format "Value in %s"
                     (helpful--button
-                     (format "#<buffer %s>" (buffer-name helpful--associated-buffer))
+                     (format "#<buffer %s>"
+                             (buffer-name helpful--associated-buffer))
                      'helpful-buffer-button
                      'buffer helpful--associated-buffer
                      'position pos)))
@@ -2333,13 +2335,13 @@ state of the current symbol."
        (cond
         (source-path
          (concat
-          (propertize (format "%s Defined in " (if primitive-p "//" ";;"))
-                      'face 'font-lock-comment-face)
+          "Defined in "
           (helpful--navigate-button
            (f-abbrev source-path)
            source-path
            pos)
-          "\n"))
+          (format "\n#+begin_src %s\n"
+                  (if primitive-p "c" "elisp"))))
         (primitive-p
          (concat
           (propertize
@@ -2369,7 +2371,8 @@ state of the current symbol."
            (if (eq helpful--sym canonical-sym)
                ";; Could not find source code, showing raw function object.\n"
              ";; Could not find alias source code, showing raw function object.\n")
-           (helpful--pretty-print source)))))))
+           (helpful--pretty-print source)))))
+       "\n#+end_src"))
 
     (helpful--insert-section-break)
 
@@ -2734,9 +2737,9 @@ See also `helpful-max-buffers'."
     (define-key map (kbd "g") #'helpful-update)
     (define-key map (kbd "RET") #'helpful-visit-reference)
 
-    (define-key map (kbd "TAB") #'forward-button)
-    (define-key map (kbd "<backtab>") #'backward-button)
-
+    ;;    (define-key map (kbd "TAB") #'forward-button)
+    ;;    (define-key map (kbd "<backtab>") #'backward-button)
+    (define-key map (kbd "q") #'quit-window)
     (define-key map (kbd "n") #'forward-button)
     (define-key map (kbd "p") #'backward-button)
     map)
@@ -2750,7 +2753,7 @@ See also `helpful-max-buffers'."
 ;; TODO: find a cleaner solution.
 (defvar bookmark-make-record-function)
 
-(define-derived-mode helpful-mode special-mode "Helpful"
+(define-derived-mode helpful-mode org-mode "Helpful"
   "Major mode for *Helpful* buffers."
   (add-hook 'xref-backend-functions #'elisp--xref-backend nil t)
 
@@ -2760,7 +2763,8 @@ See also `helpful-max-buffers'."
 
   ;; Enable users to bookmark helpful buffers.
   (set (make-local-variable 'bookmark-make-record-function)
-       #'helpful--bookmark-make-record))
+       #'helpful--bookmark-make-record)
+  (setq buffer-read-only t))
 
 (provide 'helpful)
 ;;; helpful.el ends here
